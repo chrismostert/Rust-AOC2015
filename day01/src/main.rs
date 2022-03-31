@@ -1,25 +1,18 @@
 fn main() {
     let input = include_str!("../input.txt");
-    let (final_floor, basement_step) =
-        input
-            .chars()
-            .enumerate()
-            .fold((0, 0), |(floor_res, step_res), (i, c)| {
-                let next = match c {
-                    '(' => floor_res + 1,
-                    ')' => floor_res - 1,
-                    _ => unreachable!(),
-                };
+    let mut final_floor = 0;
+    let mut basement_step = 0;
 
-                (
-                    next,
-                    if next < 0 && step_res == 0 {
-                        i + 1
-                    } else {
-                        step_res
-                    },
-                )
-            });
+    for (i, c) in input.chars().enumerate() {
+        final_floor += match c {
+            '(' => 1,
+            ')' => -1,
+            _ => unreachable!(),
+        };
+        if final_floor < 0 && basement_step == 0 {
+            basement_step = i + 1;
+        };
+    }
 
     println!("Part 1: {}", final_floor);
     println!("Part 2: {}", basement_step);
