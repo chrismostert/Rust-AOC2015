@@ -13,19 +13,19 @@ impl Present {
             h: sizes.next().unwrap(),
         }
     }
-}
 
-fn get_paper_amount(p: &Present) -> usize {
-    let (area_sum, min_size) = [p.l * p.w, p.w * p.h, p.h * p.l]
-        .iter()
-        .fold((0, usize::MAX), |acc, &x| (acc.0 + 2 * x, x.min(acc.1)));
-    area_sum + min_size
-}
+    fn paper_amount(&self) -> usize {
+        let (area_sum, min_size) = [self.l * self.w, self.w * self.h, self.h * self.l]
+            .iter()
+            .fold((0, usize::MAX), |acc, &x| (acc.0 + 2 * x, x.min(acc.1)));
+        area_sum + min_size
+    }
 
-fn get_ribbon_amount(p: &Present) -> usize {
-    let mut s = [p.l, p.w, p.h];
-    s.sort_unstable();
-    2 * s[0] + 2 * s[1] + (s[0] * s[1] * s[2])
+    fn ribbon_amount(&self) -> usize {
+        let mut s = [self.l, self.w, self.h];
+        s.sort_unstable();
+        2 * s[0] + 2 * s[1] + (s[0] * s[1] * s[2])
+    }
 }
 
 fn main() {
@@ -34,8 +34,8 @@ fn main() {
         .map(Present::new)
         .collect();
 
-    let p1: usize = input.iter().map(get_paper_amount).sum();
-    let p2: usize = input.iter().map(get_ribbon_amount).sum();
+    let p1: usize = input.iter().map(|x| x.paper_amount()).sum();
+    let p2: usize = input.iter().map(|x| x.ribbon_amount()).sum();
 
     println!("Part 1: {}", p1);
     println!("Part 2: {}", p2);
