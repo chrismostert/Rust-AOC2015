@@ -1,4 +1,3 @@
-use cached::{cached_key, UnboundCache};
 use itertools::Itertools;
 use std::collections::HashMap;
 
@@ -28,33 +27,47 @@ fn parse_instruction(inst: &'static str) -> (Instruction, &str) {
     (Instruction::Set(lhs), rhs)
 }
 
-cached_key! {
-    EXECUTE_INSTRUCTION: UnboundCache<String, u16> = UnboundCache::new();
-    Key = { query.to_owned() };
-    fn execute_instruction(wires: &HashMap<&str, Instruction>, query: &str) -> u16 = {
-        if let Ok(v) = query.parse::<u16>() {
+fn execute_instruction(
+    wires: &HashMap<&str, Instruction>,
+    query: &str,
+    cache: &mut HashMap<&str, u16>,
+) -> u16 {
+    let mut exec_cache = |query| {
+        if let Some(&v) = cache.get(query) {
             return v;
-        }
-        match wires[query] {
-            Instruction::Set(a) => {
-                if let Ok(v) = a.parse() {
-                    return v;
-                }
-                execute_instruction(wires, a)
-            }
-            Instruction::Not(a) => !(execute_instruction(wires, a)),
-            Instruction::And(a, b) => execute_instruction(wires, a) & execute_instruction(wires, b),
-            Instruction::Or(a, b) => execute_instruction(wires, a) | execute_instruction(wires, b),
-            Instruction::Lshift(a, n) => execute_instruction(wires, a) << n.parse::<usize>().unwrap(),
-            Instruction::Rshift(a, n) => execute_instruction(wires, a) >> n.parse::<usize>().unwrap(),
-        }
+        };
+        let res = execute_instruction(wires, query, cache);
+        cache.insert(query, res);
+        res
+    };
+
+    if let Ok(v) = query.parse::<u16>() {
+        return v;
     }
+    match wires[query] {
+        Instruction::Set(a) => {
+            if let Ok(v) = a.parse() {
+                return v;
+            }
+            exec_cache(a)
+        }
+        Instruction::Not(a) => !(exec_cache(a)),
+        Instruction::And(a, b) => exec_cache(a) & exec_cache(b),
+        Instruction::Or(a, b) => exec_cache(a) | exec_cache(b),
+        Instruction::Lshift(a, n) => exec_cache(a) << n.parse::<usize>().unwrap(),
+        Instruction::Rshift(a, n) => exec_cache(a) >> n.parse::<usize>().unwrap(),
+    }
+}
+
+fn get_final_value(wires: &HashMap<&str, Instruction>, query: &str) -> u16 {
+    let mut cache: HashMap<&str, u16> = HashMap::new();
+    execute_instruction(wires, query, &mut cache)
 }
 
 fn main() {
     let input = include_str!("../input.txt").lines().collect_vec();
 
-    let wires =
+    let mut wires =
         input
             .into_iter()
             .map(parse_instruction)
@@ -63,5 +76,7 @@ fn main() {
                 acc
             });
 
-    println!("Part 1: {}", execute_instruction(&wires, "a"));
+    println!("Part 1: {}", get_final_value(&wires, "a"));
+    wires.insert("b", Instruction::Set("956"));
+    println!("Part 2: {}", get_final_value(&wires, "a"));
 }
